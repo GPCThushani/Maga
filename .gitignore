@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 
-# Build outputs
+# Production builds
 dist/
 build/
 
@@ -10,6 +10,7 @@ build/
 .env.local
 .env.*.local
 
-# System/OS
+# System/Logs
+*.log
 .DS_Store
 Thumbs.db
