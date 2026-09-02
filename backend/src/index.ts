@@ -5,6 +5,7 @@ import { connectDB } from './config/db';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import applicationRoutes from './routes/applicationRoutes';
+import analyticsRoutes from './routes/analyticsRoutes';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 app.use('/api/v1/applications', applicationRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
 
 // Routes
 app.get('/api/v1/health', (_req, res) => {
