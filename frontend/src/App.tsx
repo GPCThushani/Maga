@@ -1,15 +1,37 @@
+import { useState } from 'react';
+import { Layout, type ScreenId } from './components/Layout';
+import { Overview } from './pages/Overview';
+import { Applications } from './pages/Applications';
+import { CareerAnalysis } from './pages/CareerAnalysis';
+import { CVProfile } from './pages/CVProfile';
+
 export default function App() {
+  const [currentScreen, setCurrentScreen] = useState<ScreenId>('overview');
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F7F7F5', color: '#202124', padding: '2rem' }}>
-      <header style={{ borderBottom: '1px solid #E4E4E1', paddingBottom: '1rem' }}>
-        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600 }}>මඟ · Maga</h1>
-        <p style={{ margin: '0.25rem 0 0', color: '#6B6F76', fontSize: '0.875rem' }}>
-          Career & Internship Management Platform
-        </p>
-      </header>
-      <main style={{ marginTop: '2rem' }}>
-        <p>Workspace initialized.</p>
-      </main>
-    </div>
+    <Layout currentScreen={currentScreen} onNavigate={setCurrentScreen}>
+      {currentScreen === 'overview' && (
+        <Overview onNavigate={(screen) => setCurrentScreen(screen as ScreenId)} />
+      )}
+      {currentScreen === 'applications' && <Applications />}
+      {currentScreen === 'cv-profile' && <CVProfile />}
+      {currentScreen === 'career-analysis' && <CareerAnalysis />}
+      {currentScreen === 'analytics' && (
+        <div className="space-y-4">
+          <h1 className="text-2xl font-semibold text-textPrimary">Analytics</h1>
+          <p className="text-sm text-textSecondary">
+            Macro conversion metrics, interview rate trends, and monthly velocity reports.
+          </p>
+        </div>
+      )}
+      {currentScreen === 'settings' && (
+        <div className="space-y-4">
+          <h1 className="text-2xl font-semibold text-textPrimary">Settings</h1>
+          <p className="text-sm text-textSecondary">
+            Account credentials, API integrations, and notification preferences.
+          </p>
+        </div>
+      )}
+    </Layout>
   );
 }
