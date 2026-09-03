@@ -1,5 +1,6 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { BrandLogo } from './BrandWordmark';
+import { useAuth } from '../services/authContext';
 
 export type ScreenId =
   | 'overview'
@@ -25,31 +26,30 @@ const NAV_ITEMS: { id: ScreenId; label: string }[] = [
 ];
 
 export const Layout = ({ currentScreen, onNavigate, children }: LayoutProps) => {
+  const { user, logout } = useAuth();
+
   return (
     <div className="flex min-h-screen bg-background text-textPrimary">
-      {/* Left Sidebar */}
-      <aside className="w-64 border-r border-border bg-surface flex flex-col justify-between select-none">
+      <aside className="flex w-64 select-none flex-col justify-between border-r border-border bg-surface">
         <div>
-          {/* Header area with Image Logo */}
-          <div className="px-6 py-6 border-b border-border flex items-center justify-between">
+          <div className="flex items-center justify-between border-b border-border px-6 py-6">
             <BrandLogo />
-            <span className="text-xs uppercase tracking-widest text-textSecondary font-semibold">
+            <span className="text-xs font-semibold tracking-widest text-textSecondary uppercase">
               Maga
             </span>
           </div>
 
-          {/* Navigation Items */}
-          <nav className="p-3 space-y-1">
+          <nav className="space-y-1 p-3">
             {NAV_ITEMS.map((item) => {
               const isActive = currentScreen === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => onNavigate(item.id)}
-                  className={`w-full text-left px-3.5 py-2 rounded-btn text-sm font-medium transition-colors ${
+                  className={`w-full rounded-btn px-3.5 py-2 text-left text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-accent-light text-accent font-semibold'
-                      : 'text-textSecondary hover:text-textPrimary hover:bg-background'
+                      ? 'bg-accent-light font-semibold text-accent'
+                      : 'text-textSecondary hover:bg-background hover:text-textPrimary'
                   }`}
                 >
                   {item.label}
@@ -59,17 +59,27 @@ export const Layout = ({ currentScreen, onNavigate, children }: LayoutProps) => 
           </nav>
         </div>
 
-        {/* Footer info */}
-        <div className="p-4 border-t border-border text-xs text-textMuted">
-          Maga Workspace v1.0
+        {/* User Session Footer */}
+        <div className="border-t border-border p-4">
+          <div className="flex items-center justify-between">
+            <div className="truncate">
+              <div className="truncate text-xs font-medium text-textPrimary">
+                {user?.name || 'Logged User'}
+              </div>
+              <div className="truncate text-[11px] text-textMuted">{user?.email}</div>
+            </div>
+            <button
+              onClick={logout}
+              className="text-[11px] font-medium text-danger hover:underline"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </aside>
 
-      {/* Main Content Viewport */}
       <main className="flex-1 overflow-y-auto px-10 py-8">
-        <div className="max-w-5xl mx-auto">
-          {children}
-        </div>
+        <div className="mx-auto max-w-5xl">{children}</div>
       </main>
     </div>
   );
