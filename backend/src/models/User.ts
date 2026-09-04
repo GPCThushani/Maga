@@ -11,6 +11,8 @@ export interface IUser extends Document {
   skills: string[];
   cvUrl?: string;
   cvRawText?: string;
+  resetPasswordOtp?: string;
+  resetPasswordOtpExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,8 +29,10 @@ const UserSchema = new Schema<IUser>(
     skills: { type: [String], default: [] },
     cvUrl: { type: String, default: '' },
     cvRawText: { type: String, default: '' },
+    resetPasswordOtp: { type: String, default: null },
+    resetPasswordOtpExpires: { type: Date, default: null },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const User = model<IUser>('User', UserSchema);
