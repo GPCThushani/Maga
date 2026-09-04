@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { User } from '../models/User';
@@ -62,5 +63,41 @@ export const updateUserProfile = async (
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error updating profile.', error });
+  }
+};
+
+// PUT /api/v1/users/change-password
+export const changePassword = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ message: 'Both current and new passwords are required.' });
+      return;
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      res.status(404).json({ message: 'User not found.' });
+      return;
+    }
+
+    // Validate old password against passwordHash
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      res.status(400).json({ message: 'Current password is incorrect.' });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.passwordHash = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error changing password.', error });
   }
 };

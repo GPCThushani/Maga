@@ -35,6 +35,7 @@ export const Applications = () => {
   const [apps, setApps] = useState<ApplicationItem[]>(MOCK_APPLICATIONS);
   const [search, setSearch] = useState('');
   const [filterStage, setFilterStage] = useState<string>('All');
+  const [sortBy, setSortBy] = useState<'default' | 'match-desc' | 'match-asc'>('default');
   const [selectedApp, setSelectedApp] = useState<ApplicationItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,7 +48,7 @@ export const Applications = () => {
           setApps(res.data.applications);
         }
       } catch (err) {
-        // Retain benchmark mock data if offline or unseeded
+        // Retains benchmark data if unseeded
       }
     };
     fetchApps();
@@ -69,26 +70,63 @@ export const Applications = () => {
     setIsDrawerOpen(true);
   };
 
-  const filteredApps = apps.filter((item) => {
-    const matchesSearch =
-      item.company.toLowerCase().includes(search.toLowerCase()) ||
-      item.role.toLowerCase().includes(search.toLowerCase());
-    const matchesStage = filterStage === 'All' || item.stage === filterStage;
-    return matchesSearch && matchesStage;
-  });
+  // CSV Export utility
+  const exportToCSV = () => {
+    const headers = ['Company', 'Role', 'Location', 'Work Type', 'Stage', 'Match Score (%)', 'Requirements', 'Deadline'];
+    const rows = apps.map((app) => [
+      `"${app.company}"`,
+      `"${app.role}"`,
+      `"${app.location}"`,
+      `"${app.workType}"`,
+      `"${app.stage}"`,
+      app.matchScore ?? 'N/A',
+      `"${(app.requirements || []).join(', ')}"`,
+      app.deadline ? new Date(app.deadline).toLocaleDateString() : 'None',
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `maga_applications_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Filtering & Sorting Pipeline
+  const filteredApps = apps
+    .filter((item) => {
+      const matchesSearch =
+        item.company.toLowerCase().includes(search.toLowerCase()) ||
+        item.role.toLowerCase().includes(search.toLowerCase());
+      const matchesStage = filterStage === 'All' || item.stage === filterStage;
+      return matchesSearch && matchesStage;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'match-desc') return (b.matchScore || 0) - (a.matchScore || 0);
+      if (sortBy === 'match-asc') return (a.matchScore || 0) - (b.matchScore || 0);
+      return 0;
+    });
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Header & Controls */}
+      {/* Header & Primary Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-textPrimary">Applications</h1>
           <p className="mt-0.5 text-sm text-textSecondary">
-            Manage your recruitment pipeline across {apps.length} active opportunities.
+            Manage and track your pipeline across {apps.length} active opportunities.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={exportToCSV}
+            className="rounded-btn border border-border bg-surface px-3 py-1.5 text-xs font-medium text-textSecondary hover:text-textPrimary hover:bg-background transition-colors"
+          >
+            Export CSV
+          </button>
           <button
             onClick={() => setIsModalOpen(true)}
             className="rounded-btn bg-accent px-3.5 py-1.5 text-xs font-medium text-white hover:bg-accent/90 transition-colors"
@@ -122,14 +160,14 @@ export const Applications = () => {
         </div>
       </div>
 
-      {/* Filter / Search Bar */}
-      <div className="flex items-center gap-3">
+      {/* Filter, Search & Sort Bar */}
+      <div className="flex flex-wrap items-center gap-3">
         <input
           type="text"
           placeholder="Filter by company or role..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-72 rounded-input border border-border bg-surface px-3 py-1.5 text-sm text-textPrimary placeholder:text-textMuted focus:outline-none focus:border-accent"
+          className="w-64 rounded-input border border-border bg-surface px-3 py-1.5 text-sm text-textPrimary placeholder:text-textMuted focus:outline-none focus:border-accent"
         />
         <select
           value={filterStage}
@@ -140,6 +178,15 @@ export const Applications = () => {
           {STAGES.map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
+        </select>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as any)}
+          className="rounded-input border border-border bg-surface px-3 py-1.5 text-sm text-textSecondary focus:outline-none focus:border-accent"
+        >
+          <option value="default">Sort: Default</option>
+          <option value="match-desc">Sort: Highest Match</option>
+          <option value="match-asc">Sort: Lowest Match</option>
         </select>
       </div>
 
@@ -183,7 +230,7 @@ export const Applications = () => {
                         <span>{item.location}</span>
                       </div>
 
-                      {/* Stage Selector (click propagation stopped) */}
+                      {/* Stage Selector */}
                       <div
                         onClick={(e) => e.stopPropagation()}
                         className="mt-2.5 pt-2 border-t border-border/40 flex items-center justify-between text-[11px]"
@@ -262,7 +309,7 @@ export const Applications = () => {
       <AddApplicationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onCreated={(newApp: ApplicationItem) => setApps((prev) => [newApp, ...prev])}
+        onCreated={(newApp) => setApps((prev) => [newApp, ...prev])}
       />
 
       {/* Slide-over Details Drawer */}

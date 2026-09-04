@@ -7,6 +7,7 @@ import { CareerAnalysis } from './pages/CareerAnalysis';
 import { CVProfile } from './pages/CVProfile';
 import { Auth } from './pages/Auth';
 import { Analytics } from './pages/Analytics';
+import { Settings } from './pages/Settings';
 
 function MainApp() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -33,14 +34,7 @@ function MainApp() {
       {currentScreen === 'cv-profile' && <CVProfile />}
       {currentScreen === 'career-analysis' && <CareerAnalysis />}
       {currentScreen === 'analytics' && <Analytics />}
-      {currentScreen === 'settings' && (
-        <div className="space-y-4">
-          <h1 className="text-2xl font-semibold text-textPrimary">Settings</h1>
-          <p className="text-sm text-textSecondary">
-            Account credentials, API integrations, and workspace preferences.
-          </p>
-        </div>
-      )}
+      {currentScreen === 'settings' && <Settings />}
     </Layout>
   );
 }
