@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { AuthProvider, useAuth } from './services/authContext';
+import { AuthProvider, useAuth } from './services/AuthContext';
 import { Layout, type ScreenId } from './components/Layout';
 import { Overview } from './pages/Overview';
 import { Applications } from './pages/Applications';
 import { CareerAnalysis } from './pages/CareerAnalysis';
 import { CVProfile } from './pages/CVProfile';
 import { Auth } from './pages/Auth';
+import { Analytics } from './pages/Analytics';
 
 function MainApp() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -31,14 +32,7 @@ function MainApp() {
       {currentScreen === 'applications' && <Applications />}
       {currentScreen === 'cv-profile' && <CVProfile />}
       {currentScreen === 'career-analysis' && <CareerAnalysis />}
-      {currentScreen === 'analytics' && (
-        <div className="space-y-4">
-          <h1 className="text-2xl font-semibold text-textPrimary">Analytics</h1>
-          <p className="text-sm text-textSecondary">
-            Macro conversion metrics and monthly velocity reports.
-          </p>
-        </div>
-      )}
+      {currentScreen === 'analytics' && <Analytics />}
       {currentScreen === 'settings' && (
         <div className="space-y-4">
           <h1 className="text-2xl font-semibold text-textPrimary">Settings</h1>

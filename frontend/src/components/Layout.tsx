@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { BrandLogo } from './BrandWordmark';
-import { useAuth } from '../services/authContext';
+import { useAuth } from '../services/AuthContext';
 
 export type ScreenId =
   | 'overview'
