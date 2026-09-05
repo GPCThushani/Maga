@@ -1,4 +1,4 @@
-# CareerTrack — මඟ
+# CareerTrack - මඟ
 
 > **An Intelligent Career & Internship Management Platform for Students**
 
