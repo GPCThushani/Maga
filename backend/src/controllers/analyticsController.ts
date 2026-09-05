@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { Application } from '../models/Application';
 import { User } from '../models/User';
 import { Opportunity } from '../models/Opportunity';
@@ -26,138 +27,90 @@ interface NormalizedJob {
 }
 
 /* =========================================================
-   SEARCH CONFIGURATION
+   CANONICAL SKILL NORMALIZATION DICTIONARY
+========================================================= */
+
+const CANONICAL_SKILLS: Record<string, string> = {
+  react: 'React',
+  'react.js': 'React',
+  reactjs: 'React',
+  node: 'Node.js',
+  'node.js': 'Node.js',
+  nodejs: 'Node.js',
+  'node js': 'Node.js',
+  express: 'Express',
+  'express.js': 'Express',
+  expressjs: 'Express',
+  typescript: 'TypeScript',
+  ts: 'TypeScript',
+  javascript: 'JavaScript',
+  js: 'JavaScript',
+  mongodb: 'MongoDB',
+  mongo: 'MongoDB',
+  sql: 'SQL',
+  mssql: 'SQL',
+  'ms sql': 'SQL',
+  mysql: 'MySQL',
+  postgresql: 'PostgreSQL',
+  postgres: 'PostgreSQL',
+  'postgres db': 'PostgreSQL',
+  docker: 'Docker',
+  kubernetes: 'Kubernetes',
+  k8s: 'Kubernetes',
+  aws: 'AWS',
+  azure: 'Azure',
+  git: 'Git',
+  github: 'GitHub',
+  'ci/cd': 'CI/CD',
+  cicd: 'CI/CD',
+  html: 'HTML',
+  css: 'CSS',
+  'tailwind css': 'Tailwind CSS',
+  tailwind: 'Tailwind CSS',
+  tailwindcss: 'Tailwind CSS',
+  redux: 'Redux',
+  'next.js': 'Next.js',
+  nextjs: 'Next.js',
+  python: 'Python',
+  java: 'Java',
+  'c#': 'C#',
+  '.net': '.NET',
+  dotnet: '.NET',
+  selenium: 'Selenium',
+  postman: 'Postman',
+  jira: 'Jira',
+  figma: 'Figma',
+  flutter: 'Flutter',
+  'react native': 'React Native',
+  pandas: 'Pandas',
+  powerbi: 'PowerBI',
+  'power bi': 'PowerBI',
+};
+
+const canonicalizeSkill = (raw: string): string => {
+  const clean = raw.trim().toLowerCase();
+  return CANONICAL_SKILLS[clean] || raw.trim();
+};
+
+/* =========================================================
+   SEARCH CONFIGURATION & HELPERS
 ========================================================= */
 
 const SEARCH_ALIASES: Record<string, string[]> = {
-  intern: [
-    'intern',
-    'internship',
-    'trainee',
-    'student',
-    'graduate',
-    'entry level',
-    'entry-level',
-    'junior',
-  ],
-  frontend: [
-    'frontend',
-    'front-end',
-    'front end',
-    'react',
-    'reactjs',
-    'angular',
-    'vue',
-    'ui developer',
-    'web developer',
-  ],
-  backend: [
-    'backend',
-    'back-end',
-    'back end',
-    'node',
-    'nodejs',
-    'express',
-    'java',
-    'spring',
-    'python',
-    'django',
-    '.net',
-    'c#',
-  ],
-  fullstack: [
-    'fullstack',
-    'full-stack',
-    'full stack',
-    'software engineer',
-    'software developer',
-    'web developer',
-  ],
-  software: [
-    'software engineer',
-    'software developer',
-    'developer',
-    'programmer',
-  ],
-  qa: [
-    'qa',
-    'quality assurance',
-    'quality analyst',
-    'quality engineer',
-    'software tester',
-    'test engineer',
-    'testing',
-    'tester',
-  ],
-  data: [
-    'data',
-    'data analyst',
-    'data engineer',
-    'data scientist',
-    'analytics',
-    'sql',
-  ],
-  design: [
-    'design',
-    'designer',
-    'ui design',
-    'ux design',
-    'ui/ux',
-    'product designer',
-    'graphic designer',
-  ],
-  content: [
-    'content',
-    'content writer',
-    'technical writer',
-    'copywriter',
-    'copywriting',
-    'editor',
-    'writing',
-  ],
-  marketing: [
-    'marketing',
-    'digital marketing',
-    'seo',
-    'growth marketing',
-  ],
-  business: [
-    'business analyst',
-    'business analysis',
-    'ba',
-    'product analyst',
-    'product management',
-  ],
-  devops: [
-    'devops',
-    'cloud',
-    'aws',
-    'azure',
-    'docker',
-    'kubernetes',
-    'sre',
-  ],
+  intern: ['intern', 'internship', 'trainee', 'student', 'graduate', 'entry level', 'entry-level', 'junior'],
+  frontend: ['frontend', 'front-end', 'front end', 'react', 'reactjs', 'vue', 'angular'],
+  backend: ['backend', 'back-end', 'back end', 'node', 'nodejs', 'express', 'java', 'spring', 'python', 'django', '.net'],
+  fullstack: ['fullstack', 'full-stack', 'full stack'],
+  qa: ['qa', 'quality assurance', 'software tester', 'test engineer', 'testing'],
+  data: ['data analyst', 'data engineer', 'data scientist', 'analytics'],
+  design: ['ui designer', 'ux designer', 'ui/ux', 'product designer'],
+  devops: ['devops', 'cloud engineer', 'sre', 'site reliability'],
 };
 
 const SENIOR_KEYWORDS = [
-  'senior',
-  'sr.',
-  'sr ',
-  'lead',
-  'principal',
-  'staff',
-  'architect',
-  'director',
-  'vp',
-  'vice president',
-  'head of',
-  'manager',
-  'chief',
+  'senior', 'sr.', 'sr ', 'lead', 'principal', 'staff', 'architect',
+  'director', 'vp', 'vice president', 'head of', 'manager', 'chief',
 ];
-
-/* =========================================================
-   CACHE
-========================================================= */
 
 interface CacheEntry {
   expiresAt: number;
@@ -166,10 +119,6 @@ interface CacheEntry {
 
 const jobCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 15 * 60 * 1000;
-
-/* =========================================================
-   TEXT HELPERS
-========================================================= */
 
 const normalizeText = (value: unknown): string => {
   return String(value || '')
@@ -210,29 +159,12 @@ const uniqueStrings = (items: unknown[]): string[] => {
   return result;
 };
 
-/* =========================================================
-   SEARCH HELPERS
-========================================================= */
-
 const getSearchTerms = (term: string): string[] => {
   const normalized = normalizeText(term);
   if (!normalized) return [];
 
-  const compact = normalized.replace(/[^a-z0-9]+/g, '');
-
   const aliasKey = Object.keys(SEARCH_ALIASES).find((key) => {
-    const normalizedKey = normalizeText(key);
-    const compactKey = normalizedKey.replace(/[^a-z0-9]+/g, '');
-
-    return (
-      normalizedKey === normalized ||
-      compactKey === compact ||
-      SEARCH_ALIASES[key].some((alias) => {
-        const normalizedAlias = normalizeText(alias);
-        const compactAlias = normalizedAlias.replace(/[^a-z0-9]+/g, '');
-        return normalizedAlias === normalized || compactAlias === compact;
-      })
-    );
+    return key === normalized || (SEARCH_ALIASES[key] && SEARCH_ALIASES[key].includes(normalized));
   });
 
   if (aliasKey) {
@@ -246,31 +178,14 @@ const getExternalSearchTerm = (term: string): string => {
   const normalized = normalizeText(term);
   if (!normalized) return '';
 
-  const compact = normalized.replace(/[^a-z0-9]+/g, '');
-  const aliases = Object.entries(SEARCH_ALIASES);
-
-  for (const [key, values] of aliases) {
-    const keyCompact = key.replace(/[^a-z0-9]+/g, '');
-
-    if (
-      key === normalized ||
-      keyCompact === compact ||
-      values.some((value) => {
-        const normalizedValue = normalizeText(value);
-        const compactValue = normalizedValue.replace(/[^a-z0-9]+/g, '');
-        return normalizedValue === normalized || compactValue === compact;
-      })
-    ) {
+  for (const [key, values] of Object.entries(SEARCH_ALIASES)) {
+    if (key === normalized || values.includes(normalized)) {
       return values[0];
     }
   }
 
   return normalized;
 };
-
-/* =========================================================
-   JOB CLASSIFICATION
-========================================================= */
 
 const isInternshipRole = (role: string, employmentType?: string): boolean => {
   const text = normalizeText(`${role} ${employmentType || ''}`);
@@ -283,9 +198,7 @@ const isSeniorRole = (role: string, level?: string): boolean => {
 };
 
 const getExperiencePriority = (job: NormalizedJob): number => {
-  if (isInternshipRole(job.role, job.employmentType)) {
-    return 0;
-  }
+  if (isInternshipRole(job.role, job.employmentType)) return 0;
 
   const text = normalizeText(`${job.role} ${job.experienceLevel}`);
   if (
@@ -298,16 +211,10 @@ const getExperiencePriority = (job: NormalizedJob): number => {
     return 1;
   }
 
-  if (isSeniorRole(job.role, job.experienceLevel)) {
-    return 3;
-  }
+  if (isSeniorRole(job.role, job.experienceLevel)) return 3;
 
   return 2;
 };
-
-/* =========================================================
-   SEARCH MATCHING
-========================================================= */
 
 const isRelevantForSearch = (job: NormalizedJob, searchTerms: string[]): boolean => {
   if (!searchTerms.length) return true;
@@ -319,23 +226,18 @@ const isRelevantForSearch = (job: NormalizedJob, searchTerms: string[]): boolean
       job.location,
       job.workType,
       job.employmentType,
-      job.experienceLevel,
-      job.description,
       ...job.requirements,
     ].join(' ')
   );
 
-  return searchTerms.some((term) => searchableText.includes(normalizeText(term)));
+  return searchTerms.some((term) => {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(searchableText);
+  });
 };
 
-/* =========================================================
-   EMPLOYMENT TYPE & FORMATTERS
-========================================================= */
-
 const getEmploymentType = (values: unknown): string => {
-  const text = Array.isArray(values)
-    ? values.join(' ').toLowerCase()
-    : normalizeText(values);
+  const text = Array.isArray(values) ? values.join(' ').toLowerCase() : normalizeText(values);
 
   if (text.includes('intern') || text.includes('trainee')) return 'Internship';
   if (text.includes('full') || text.includes('permanent')) return 'Full-time';
@@ -346,12 +248,7 @@ const getEmploymentType = (values: unknown): string => {
   return 'Not specified';
 };
 
-const formatSalary = (
-  min: unknown,
-  max: unknown,
-  currency: unknown,
-  period: unknown
-): string | undefined => {
+const formatSalary = (min: unknown, max: unknown, currency: unknown, period: unknown): string | undefined => {
   const minimum = Number(min);
   const maximum = Number(max);
 
@@ -367,9 +264,7 @@ const formatSalary = (
   }
 
   const value = minimum || maximum;
-  return `${currencyValue} ${value.toLocaleString()}${
-    periodValue ? ` / ${periodValue}` : ''
-  }`;
+  return `${currencyValue} ${value.toLocaleString()}${periodValue ? ` / ${periodValue}` : ''}`;
 };
 
 const getPublicationTime = (value: unknown): number => {
@@ -384,10 +279,6 @@ const getPublicationTime = (value: unknown): number => {
   return Number.isNaN(parsed) ? 0 : parsed;
 };
 
-/* =========================================================
-   SAFE FETCH
-========================================================= */
-
 const safeFetch = async (url: string, timeoutMs = 8000): Promise<any | null> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -398,7 +289,7 @@ const safeFetch = async (url: string, timeoutMs = 8000): Promise<any | null> => 
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
-        'User-Agent': 'Maga-Career-Platform/1.0',
+        'User-Agent': 'CareerTrack/1.0',
       },
     });
 
@@ -412,7 +303,7 @@ const safeFetch = async (url: string, timeoutMs = 8000): Promise<any | null> => 
 };
 
 /* =========================================================
-   DASHBOARD OVERVIEW
+   DASHBOARD OVERVIEW & APPLICATION ANALYTICS
 ========================================================= */
 
 export const getDashboardOverview = async (
@@ -420,15 +311,22 @@ export const getDashboardOverview = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.userId || req.user?.id || req.user?._id;
+    const rawUserId = req.userId || req.user?.id || req.user?._id;
 
-    if (!userId) {
+    if (!rawUserId) {
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }
 
+    const userId = new mongoose.Types.ObjectId(String(rawUserId));
     const user = await User.findById(userId).select('name skills targetRole');
-    const applications = await Application.find({ userId });
+    const userSkillsSet = new Set((user?.skills || []).map((s: string) => canonicalizeSkill(s).toLowerCase()));
+
+    // 1. Funnel Pipeline Stage Counts
+    const stageCounts = await Application.aggregate([
+      { $match: { userId } },
+      { $group: { _id: '$stage', count: { $sum: 1 } } },
+    ]);
 
     const pipeline: Record<string, number> = {
       Saved: 0,
@@ -438,101 +336,151 @@ export const getDashboardOverview = async (
       Decision: 0,
     };
 
-    applications.forEach((app: any) => {
-      const stage = app.stage || 'Saved';
-      if (pipeline[stage] !== undefined) {
-        pipeline[stage] += 1;
+    stageCounts.forEach((item) => {
+      if (pipeline[item._id] !== undefined) {
+        pipeline[item._id] = item.count;
       }
     });
 
-    const metrics = {
-      totalApplications: applications.filter((app: any) => app.stage !== 'Saved').length,
-      activeInterviews: pipeline.Interview || 0,
-      activeAssessments: pipeline.Assessment || 0,
+    // 2. Application Status / Outcome Counts
+    const statusCounts = await Application.aggregate([
+      { $match: { userId } },
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]);
+
+    const outcomes: Record<string, number> = {
+      Active: 0,
+      Offer: 0,
+      Rejected: 0,
+      Ghosted: 0,
     };
 
-    const deadlines = applications
-      .filter((app: any) => {
-        const date =
+    statusCounts.forEach((item) => {
+      const statusKey = item._id || 'Active';
+      if (outcomes[statusKey] !== undefined) {
+        outcomes[statusKey] = item.count;
+      } else {
+        outcomes.Active += item.count;
+      }
+    });
+
+    // Offers strictly sourced from status === 'Offer', not stage === 'Decision'
+    const actualOffersCount = outcomes.Offer;
+
+    // 3. Stale Applications Count (>14 days without updates)
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const staleCount = await Application.countDocuments({
+      userId,
+      stage: { $in: ['Applied', 'Assessment', 'Interview'] },
+      updatedAt: { $lte: fourteenDaysAgo },
+    });
+
+    // 4. In-Demand Skills: Deduplicated per application before counting
+    const appsWithReqs = await Application.find({
+      userId,
+      requirements: { $exists: true, $not: { $size: 0 } },
+    }).select('requirements').lean();
+
+    const jobsWithReqsCount = appsWithReqs.length;
+    const skillCountsMap = new Map<string, number>();
+
+    appsWithReqs.forEach((app) => {
+      if (Array.isArray(app.requirements)) {
+        const uniqueAppSkills = new Set<string>();
+        app.requirements.forEach((reqStr) => {
+          if (typeof reqStr === 'string' && reqStr.trim()) {
+            uniqueAppSkills.add(canonicalizeSkill(reqStr));
+          }
+        });
+
+        uniqueAppSkills.forEach((skill) => {
+          skillCountsMap.set(skill, (skillCountsMap.get(skill) || 0) + 1);
+        });
+      }
+    });
+
+    const sortedSkills = Array.from(skillCountsMap.entries())
+      .map(([skill, count]) => ({
+        skill,
+        count,
+        percentage: jobsWithReqsCount > 0 ? Math.round((count / jobsWithReqsCount) * 100) : 0,
+        inProfile: userSkillsSet.has(skill.toLowerCase()),
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    // 5. Explicit Funnel Quantities: Tracked vs Submitted
+    const savedOpportunities = pipeline.Saved;
+    const submittedApplications =
+      pipeline.Applied + pipeline.Assessment + pipeline.Interview + pipeline.Decision;
+    const totalTracked = savedOpportunities + submittedApplications;
+
+    // 6. Upcoming Deadlines
+    const upcomingRaw = await Application.find({
+      userId,
+      $or: [
+        { 'deadlines.date': { $gte: new Date() } },
+        { deadline: { $gte: new Date() } },
+      ],
+    })
+      .limit(10)
+      .select('company role stage deadline deadlines')
+      .lean();
+
+    const deadlines = upcomingRaw
+      .map((app: any) => {
+        const rawDate =
           app.deadline ||
-          (Array.isArray(app.deadlines) ? app.deadlines[0]?.date : undefined);
-        return date && new Date(date) >= new Date();
+          (Array.isArray(app.deadlines) && app.deadlines.length > 0 ? app.deadlines[0].date : null);
+
+        if (!rawDate || new Date(rawDate) < new Date()) return null;
+
+        return {
+          id: app._id.toString(),
+          role: app.role || 'Opportunity',
+          company: app.company || 'Tech Company',
+          type: app.stage === 'Interview' ? 'Technical Interview' : 'Application Deadline',
+          date: new Date(rawDate).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+          }),
+          timestamp: new Date(rawDate).getTime(),
+        };
       })
-      .sort((a: any, b: any) => {
-        const dateA = new Date(a.deadline || a.deadlines?.[0]?.date).getTime();
-        const dateB = new Date(b.deadline || b.deadlines?.[0]?.date).getTime();
-        return dateA - dateB;
-      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .sort((a, b) => a.timestamp - b.timestamp)
       .slice(0, 5)
-      .map((app: any) => ({
-        id: app._id.toString(),
-        role: app.role || 'Internship Role',
-        company: app.company || 'Tech Company',
-        type:
-          app.stage === 'Interview'
-            ? 'Technical Interview'
-            : 'Application Deadline',
-        date: new Date(app.deadline || app.deadlines?.[0]?.date).toLocaleDateString(
-          'en-US',
-          { month: 'short', day: 'numeric' }
-        ),
-      }));
-
-    let careerInsight = null;
-    const userSkills: string[] = user?.skills || [];
-    const benchmarkSkills = [
-      'React',
-      'Node.js',
-      'MongoDB',
-      'TypeScript',
-      'Docker',
-      'Git',
-    ];
-
-    if (userSkills.length > 0) {
-      const matched = userSkills.filter((skill: string) =>
-        benchmarkSkills.some(
-          (benchmark) => benchmark.toLowerCase() === skill.toLowerCase()
-        )
-      );
-
-      const missing = benchmarkSkills.filter(
-        (benchmark) =>
-          !userSkills.some(
-            (skill) => skill.toLowerCase() === benchmark.toLowerCase()
-          )
-      );
-
-      const matchPercentage = Math.round(
-        (matched.length / benchmarkSkills.length) * 100
-      );
-
-      careerInsight = {
-        matchPercentage,
-        targetRole: user?.targetRole || 'Full Stack Developer',
-        matchedSkills: matched,
-        missingSkills: missing,
-      };
-    }
+      .map(({ timestamp, ...rest }) => rest);
 
     res.status(200).json({
-      user: { name: user?.name },
-      metrics,
-      pipeline,
+      user: {
+        name: user?.name,
+        targetRole: user?.targetRole,
+      },
+      funnel: {
+        totalTracked,
+        savedOpportunities,
+        submittedApplications,
+        assessments: pipeline.Assessment,
+        interviews: pipeline.Interview,
+        offers: actualOffersCount,
+      },
+      outcomes,
+      staleCount,
+      topRequestedSkills: sortedSkills,
       deadlines,
-      careerInsight,
     });
   } catch (error: any) {
     console.error('Overview analytics error:', error);
     res.status(500).json({
-      message: 'Error retrieving overview data',
+      message: 'Error retrieving application analytics',
       error: error.message,
     });
   }
 };
 
 /* =========================================================
-   LIVE / CURRENT MARKET OPPORTUNITIES
+   LIVE MARKET OPPORTUNITIES
 ========================================================= */
 
 export const getLiveMarketJobs = async (
@@ -558,7 +506,7 @@ export const getLiveMarketJobs = async (
           type: employmentFilter,
           count: cached.jobs.length,
           cached: true,
-          sources: ['Maga', 'Jobicy', 'Remotive', 'Arbeitnow'],
+          sources: ['CareerTrack', 'Jobicy', 'Remotive', 'Arbeitnow'],
           fetchedAt: new Date().toISOString(),
         },
       });
@@ -567,9 +515,7 @@ export const getLiveMarketJobs = async (
 
     const allJobs: NormalizedJob[] = [];
 
-    /* =====================================================
-       1. MAGA LOCAL OPPORTUNITIES
-    ===================================================== */
+    /* 1. Local Opportunities */
     try {
       const localJobs = await Opportunity.find({ isLocal: true })
         .sort({ createdAt: -1 })
@@ -583,15 +529,11 @@ export const getLiveMarketJobs = async (
           location: job.location || 'Sri Lanka',
           workType: job.workType || 'Hybrid',
           url: job.url,
-          requirements: Array.isArray(job.requirements)
-            ? uniqueStrings(job.requirements)
-            : [],
+          requirements: Array.isArray(job.requirements) ? uniqueStrings(job.requirements) : [],
           salary: job.salary || undefined,
           isLocal: true,
-          source: 'Maga',
-          publishedAt: job.createdAt
-            ? new Date(job.createdAt).toISOString()
-            : new Date().toISOString(),
+          source: 'CareerTrack',
+          publishedAt: job.createdAt ? new Date(job.createdAt).toISOString() : new Date().toISOString(),
           employmentType: isInternshipRole(job.role) ? 'Internship' : 'Full-time',
           experienceLevel: isInternshipRole(job.role) ? 'Entry-level' : 'Not specified',
         };
@@ -601,12 +543,10 @@ export const getLiveMarketJobs = async (
         }
       }
     } catch (error: any) {
-      console.warn('Maga local opportunity query skipped:', error.message);
+      console.warn('Local opportunity query skipped:', error.message);
     }
 
-    /* =====================================================
-       2. EXTERNAL SEARCH PARAMETERS & CONCURRENT FETCH
-    ===================================================== */
+    /* 2. External Search Parameters & Fetch */
     const externalSearch = getExternalSearchTerm(searchTerm);
 
     const jobicyUrl = externalSearch
@@ -625,9 +565,7 @@ export const getLiveMarketJobs = async (
       safeFetch(arbeitnowUrl),
     ]);
 
-    /* =====================================================
-       3. PARSE JOBICY
-    ===================================================== */
+    /* 3. Parse Jobicy */
     if (Array.isArray(jobicyData?.jobs)) {
       for (const job of jobicyData.jobs) {
         const description = cleanHtml(job.jobDescription || job.jobExcerpt || '');
@@ -644,34 +582,22 @@ export const getLiveMarketJobs = async (
           workType: 'Remote',
           url: job.url || '',
           requirements,
-          salary: formatSalary(
-            job.salaryMin,
-            job.salaryMax,
-            job.salaryCurrency,
-            job.salaryPeriod
-          ),
+          salary: formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency, job.salaryPeriod),
           isLocal: false,
           source: 'Jobicy',
-          publishedAt: job.pubDate
-            ? new Date(job.pubDate).toISOString()
-            : new Date().toISOString(),
+          publishedAt: job.pubDate ? new Date(job.pubDate).toISOString() : new Date().toISOString(),
           employmentType: getEmploymentType(job.jobType),
           experienceLevel: job.jobLevel || 'Not specified',
           description,
         };
 
-        if (
-          normalized.url &&
-          (!searchTerm || isRelevantForSearch(normalized, searchTerms))
-        ) {
+        if (normalized.url && (!searchTerm || isRelevantForSearch(normalized, searchTerms))) {
           allJobs.push(normalized);
         }
       }
     }
 
-    /* =====================================================
-       4. PARSE REMOTIVE
-    ===================================================== */
+    /* 4. Parse Remotive */
     if (Array.isArray(remotiveData?.jobs)) {
       for (const job of remotiveData.jobs) {
         const description = cleanHtml(job.description || '');
@@ -688,26 +614,19 @@ export const getLiveMarketJobs = async (
           salary: job.salary || undefined,
           isLocal: false,
           source: 'Remotive',
-          publishedAt: job.publication_date
-            ? new Date(job.publication_date).toISOString()
-            : new Date().toISOString(),
+          publishedAt: job.publication_date ? new Date(job.publication_date).toISOString() : new Date().toISOString(),
           employmentType: getEmploymentType(job.job_type),
           experienceLevel: 'Not specified',
           description,
         };
 
-        if (
-          normalized.url &&
-          (!searchTerm || isRelevantForSearch(normalized, searchTerms))
-        ) {
+        if (normalized.url && (!searchTerm || isRelevantForSearch(normalized, searchTerms))) {
           allJobs.push(normalized);
         }
       }
     }
 
-    /* =====================================================
-       5. PARSE ARBEITNOW
-    ===================================================== */
+    /* 5. Parse Arbeitnow */
     if (Array.isArray(arbeitnowData?.data)) {
       for (const job of arbeitnowData.data) {
         const description = cleanHtml(job.description || '');
@@ -724,114 +643,65 @@ export const getLiveMarketJobs = async (
           salary: undefined,
           isLocal: false,
           source: 'Arbeitnow',
-          publishedAt: job.created_at
-            ? new Date(getPublicationTime(job.created_at)).toISOString()
-            : new Date().toISOString(),
+          publishedAt: job.created_at ? new Date(getPublicationTime(job.created_at)).toISOString() : new Date().toISOString(),
           employmentType: getEmploymentType(job.job_types),
-          experienceLevel:
-            tags.find((tag: string) =>
-              /junior|entry|intern|trainee|graduate/i.test(tag)
-            ) || 'Not specified',
+          experienceLevel: tags.find((tag: string) => /junior|entry|intern|trainee|graduate/i.test(tag)) || 'Not specified',
           description,
         };
 
-        if (
-          normalized.url &&
-          (!searchTerm || isRelevantForSearch(normalized, searchTerms))
-        ) {
+        if (normalized.url && (!searchTerm || isRelevantForSearch(normalized, searchTerms))) {
           allJobs.push(normalized);
         }
       }
     }
 
-    /* =====================================================
-       6. REGION FILTER
-    ===================================================== */
+    /* 6. Region & Employment Type Filters */
     let filteredJobs = allJobs.filter((job) => {
       if (region === 'sri-lanka') return job.isLocal;
-      if (region === 'remote') {
-        return !job.isLocal && normalizeText(job.workType) === 'remote';
-      }
+      if (region === 'remote') return !job.isLocal && normalizeText(job.workType) === 'remote';
       return true;
     });
 
-    /* =====================================================
-       7. EMPLOYMENT TYPE FILTER
-    ===================================================== */
     if (employmentFilter !== 'all') {
       filteredJobs = filteredJobs.filter((job) => {
         const type = normalizeText(job.employmentType);
-
         if (employmentFilter === 'internship') {
-          return (
-            type.includes('intern') ||
-            isInternshipRole(job.role, job.employmentType)
-          );
+          return type.includes('intern') || isInternshipRole(job.role, job.employmentType);
         }
-
         if (employmentFilter === 'full-time') {
-          return (
-            type.includes('full') ||
-            (!isInternshipRole(job.role, job.employmentType) &&
-              type === 'not specified')
-          );
+          return type.includes('full') || (!isInternshipRole(job.role, job.employmentType) && type === 'not specified');
         }
-
         return true;
       });
     }
 
-    /* =====================================================
-       8. DEDUPLICATION
-    ===================================================== */
+    /* 7. Deduplication & Priority Sorting */
     const uniqueJobs = new Map<string, NormalizedJob>();
-
     for (const job of filteredJobs) {
       const normalizedUrl = job.url
-        ? job.url
-            .trim()
-            .replace(/^https?:\/\//i, '')
-            .replace(/^www\./i, '')
-            .replace(/\/$/, '')
-            .toLowerCase()
+        ? job.url.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '').toLowerCase()
         : '';
-
       const fallbackKey = `${normalizeText(job.company)}-${normalizeText(job.role)}`;
       const key = normalizedUrl || fallbackKey;
-
-      if (!uniqueJobs.has(key)) {
-        uniqueJobs.set(key, job);
-      }
+      if (!uniqueJobs.has(key)) uniqueJobs.set(key, job);
     }
 
-    /* =====================================================
-       9. SORTING: INTERNSHIPS FIRST, THEN CHRONOLOGICAL
-    ===================================================== */
     const finalJobs = Array.from(uniqueJobs.values())
       .sort((a, b) => {
         const priorityA = getExperiencePriority(a);
         const priorityB = getExperiencePriority(b);
-
-        if (priorityA !== priorityB) {
-          return priorityA - priorityB;
-        }
-
+        if (priorityA !== priorityB) return priorityA - priorityB;
         return getPublicationTime(b.publishedAt) - getPublicationTime(a.publishedAt);
       })
       .slice(0, 75);
 
-    /* =====================================================
-       10. CACHE
-    ===================================================== */
     jobCache.set(cacheKey, {
       jobs: finalJobs,
       expiresAt: Date.now() + CACHE_TTL_MS,
     });
 
     for (const [key, entry] of jobCache) {
-      if (entry.expiresAt <= Date.now()) {
-        jobCache.delete(key);
-      }
+      if (entry.expiresAt <= Date.now()) jobCache.delete(key);
     }
 
     res.status(200).json({
@@ -841,7 +711,7 @@ export const getLiveMarketJobs = async (
         region,
         type: employmentFilter,
         count: finalJobs.length,
-        sources: ['Maga', 'Jobicy', 'Remotive', 'Arbeitnow'],
+        sources: ['CareerTrack', 'Jobicy', 'Remotive', 'Arbeitnow'],
         cached: false,
         fetchedAt: new Date().toISOString(),
       },
