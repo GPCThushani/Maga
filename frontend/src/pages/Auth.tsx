@@ -1,6 +1,10 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../services/AuthContext';
+import logoImg from '../assets/logo.png';
+import resumeSvg from '../assets/Resume-bro.svg';
+import kanbanSvg from '../assets/kanban method-pana.svg';
+import dashboardSvg from '../assets/Dashboard-cuate.svg';
 
 type AuthView = 'login' | 'register' | 'forgot-request' | 'forgot-verify-otp' | 'forgot-new-password';
 
@@ -11,6 +15,7 @@ interface Slide {
   description: string;
   bgColor: string;
   accentText: string;
+  image?: string;
   isBrandSlide?: boolean;
 }
 
@@ -18,11 +23,11 @@ const ONBOARDING_SLIDES: Slide[] = [
   {
     id: 0,
     tag: 'Deterministic Career Engine',
-    title: 'Maga Internship Hub',
+    title: 'CareerTrack Internship Hub',
     description:
       'Unleash your career potential with factual skill verification and structured recruitment tracking.',
-    bgColor: 'bg-[#EBF8F2]',
-    accentText: 'text-emerald-800',
+    bgColor: 'bg-[#F7F7F5]',
+    accentText: 'text-[#9E7B3B]',
     isBrandSlide: true,
   },
   {
@@ -31,8 +36,9 @@ const ONBOARDING_SLIDES: Slide[] = [
     title: 'Targeted CV Analysis',
     description:
       'Benchmark your parsed resume against active job requirements to pinpoint missing prerequisite skills.',
-    bgColor: 'bg-[#FFF7ED]',
-    accentText: 'text-amber-800',
+    bgColor: 'bg-[#FAF8F5]',
+    accentText: 'text-[#B88746]',
+    image: resumeSvg,
   },
   {
     id: 2,
@@ -40,8 +46,9 @@ const ONBOARDING_SLIDES: Slide[] = [
     title: 'Structured Pipeline Board',
     description:
       'Track applications across every stage from Initial Application to Technical Assessments and Final Decision.',
-    bgColor: 'bg-[#F0F7FF]',
-    accentText: 'text-blue-800',
+    bgColor: 'bg-[#F4F5F4]',
+    accentText: 'text-[#1B4D3E]',
+    image: kanbanSvg,
   },
   {
     id: 3,
@@ -49,8 +56,9 @@ const ONBOARDING_SLIDES: Slide[] = [
     title: 'Conversion & Skill Metrics',
     description:
       'Monitor stage velocity and identify the most in-demand technologies across the software industry.',
-    bgColor: 'bg-[#FAF5FF]',
-    accentText: 'text-purple-800',
+    bgColor: 'bg-[#F6F5F2]',
+    accentText: 'text-[#8C6D3B]',
+    image: dashboardSvg,
   },
 ];
 
@@ -209,57 +217,57 @@ export const Auth = () => {
         className={`hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 relative overflow-hidden transition-colors duration-700 ${currentSlide.bgColor}`}
       >
         <div className="flex flex-col items-center text-center max-w-sm">
+          {/* Circular Frame with Elegant Warm Gold Accents */}
           <div className="relative w-64 h-64 flex items-center justify-center mb-8">
             {currentSlide.id === 0 && (
-              <div className="absolute inset-0 rounded-full border-[4px] border-emerald-500/80 shadow-sm" />
+              <>
+                {/* Outer subtle gold halo ring */}
+                <div className="absolute inset-0 rounded-full border border-[#C5A880]/30 scale-105" />
+                {/* Main metallic warm gold circular bezel */}
+                <div className="absolute inset-0 rounded-full border-[2.5px] border-[#C5A880] shadow-[0_4px_24px_rgba(197,168,128,0.18)]" />
+              </>
             )}
             {currentSlide.id === 1 && (
-              <div className="absolute inset-0 rounded-full border-[4px] border-l-amber-500 border-t-amber-500 border-r-transparent border-b-transparent -rotate-12 transition-transform duration-700" />
+              <div className="absolute inset-0 rounded-full border-[2.5px] border-l-[#C5A880] border-t-[#C5A880] border-r-transparent border-b-transparent -rotate-12 transition-transform duration-700" />
             )}
             {currentSlide.id === 2 && (
-              <div className="absolute inset-0 rounded-full border-[4px] border-dashed border-blue-500 rotate-45 transition-transform duration-700" />
+              <div className="absolute inset-0 rounded-full border-[2.5px] border-dashed border-[#1B4D3E]/70 rotate-45 transition-transform duration-700" />
             )}
             {currentSlide.id === 3 && (
-              <div className="absolute inset-0 rounded-full border-t-[4px] border-b-[4px] border-purple-500 border-l-transparent border-r-transparent transition-all duration-700" />
+              <div className="absolute inset-0 rounded-full border-t-[2.5px] border-b-[2.5px] border-[#C5A880] border-l-transparent border-r-transparent transition-all duration-700" />
             )}
 
-            <div className="w-52 h-52 rounded-full bg-white/90 shadow-sm flex flex-col items-center justify-center p-6 backdrop-blur-xs transition-all duration-500">
+            {/* Inner Badge matching the #F7F7F5 background */}
+            <div className="w-56 h-56 rounded-full overflow-hidden flex items-center justify-center bg-[#F7F7F5] transition-all duration-500">
               {currentSlide.isBrandSlide ? (
-                <div className="flex flex-col items-center">
-                  <div className="h-16 w-16 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-800 font-bold text-2xl mb-2 shadow-xs">
-                    M
-                  </div>
-                  <span className="text-[11px] text-emerald-800 font-semibold tracking-wide">
-                    [ Primary Logo ]
-                  </span>
-                </div>
+                <img
+                  src={logoImg}
+                  alt="CareerTrack Logo"
+                  className="w-full h-full object-contain scale-[1.6] mix-blend-multiply select-none pointer-events-none"
+                />
               ) : (
-                <div className="flex flex-col items-center justify-center text-center">
-                  <div className="h-14 w-14 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400 mb-2">
-                    <svg className="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24">
-                      <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="1.75" />
-                      <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="1.75" />
-                      <path d="M21 15l-5-5L5 21" strokeWidth="1.75" />
-                    </svg>
-                  </div>
-                  <span className="text-[11px] font-medium text-slate-500 max-w-[130px]">
-                    [ Feature Graphic {currentSlide.id} ]
-                  </span>
-                </div>
+                <img
+                  src={currentSlide.image}
+                  alt={currentSlide.title}
+                  className="w-44 h-44 object-contain transition-transform duration-500 hover:scale-105 select-none pointer-events-none"
+                />
               )}
             </div>
           </div>
 
-          <span className={`text-[11px] font-semibold uppercase tracking-wider mb-2 transition-colors duration-500 ${currentSlide.accentText}`}>
+          <span
+            className={`text-[11px] font-semibold uppercase tracking-[0.2em] mb-2 transition-colors duration-500 ${currentSlide.accentText}`}
+          >
             {currentSlide.tag}
           </span>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-800 min-h-[2rem]">
+          <h2 className="text-2xl font-bold tracking-tight text-[#0E2A20] min-h-[2rem]">
             {currentSlide.title}
           </h2>
-          <p className="mt-2 text-xs text-slate-600 leading-relaxed max-w-xs min-h-[3rem]">
+          <p className="mt-2 text-xs text-[#4A5D55] leading-relaxed max-w-xs min-h-[3rem]">
             {currentSlide.description}
           </p>
 
+          {/* Dots Pagination */}
           <div className="flex items-center gap-2 mt-8">
             {ONBOARDING_SLIDES.map((slide, idx) => (
               <button
@@ -267,7 +275,9 @@ export const Auth = () => {
                 type="button"
                 onClick={() => setActiveSlide(idx)}
                 className={`transition-all duration-300 rounded-full ${
-                  activeSlide === idx ? 'h-2 w-6 bg-slate-800' : 'h-2 w-2 bg-slate-300 hover:bg-slate-400'
+                  activeSlide === idx
+                    ? 'h-1.5 w-6 bg-[#0E2A20]'
+                    : 'h-1.5 w-1.5 bg-[#C5A880]/50 hover:bg-[#C5A880]'
                 }`}
                 aria-label={`Slide ${idx + 1}`}
               />
@@ -279,14 +289,13 @@ export const Auth = () => {
       {/* RIGHT SIDE: Auth Container */}
       <div className="flex w-full lg:w-1/2 flex-col items-center justify-center px-6 sm:px-12 md:px-20 py-12">
         <div className="w-full max-w-sm">
-          {/* Logo Placeholder */}
-          <div className="mb-6 flex flex-col items-center justify-center">
-            <div className="h-14 w-14 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center font-bold text-slate-900 text-lg shadow-xs mb-1.5">
-              M
-            </div>
-            <span className="text-[10px] text-slate-400 font-medium tracking-wide">
-              [ Application Logo ]
-            </span>
+          {/* Logo Header */}
+          <div className="mb-8 flex flex-col items-center justify-center">
+            <img
+              src={logoImg}
+              alt="CareerTrack Logo"
+              className="h-16 w-auto max-w-[190px] object-contain mix-blend-multiply"
+            />
           </div>
 
           {/* Feedback Alerts */}
@@ -296,7 +305,7 @@ export const Auth = () => {
             </div>
           )}
           {success && (
-            <div className="mb-4 rounded-md bg-emerald-50 border border-emerald-200 p-2.5 text-xs text-emerald-700">
+            <div className="mb-4 rounded-md bg-emerald-50 border border-emerald-200 p-2.5 text-xs text-emerald-800">
               {success}
             </div>
           )}
@@ -312,7 +321,7 @@ export const Auth = () => {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-slate-800 focus:outline-none"
+                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-[#C5A880] focus:ring-2 focus:ring-[#C5A880]/15 focus:outline-none"
                     placeholder="ABC Perera"
                   />
                 </div>
@@ -325,7 +334,7 @@ export const Auth = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-slate-800 focus:outline-none"
+                  className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-[#C5A880] focus:ring-2 focus:ring-[#C5A880]/15 focus:outline-none"
                   placeholder="username@gmail.com"
                 />
               </div>
@@ -338,7 +347,7 @@ export const Auth = () => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-md border border-slate-200 px-3 py-2 pr-10 text-sm text-slate-800 focus:border-slate-800 focus:outline-none"
+                    className="w-full rounded-md border border-slate-200 px-3 py-2 pr-10 text-sm text-slate-800 focus:border-[#C5A880] focus:ring-2 focus:ring-[#C5A880]/15 focus:outline-none"
                     placeholder="••••••••••••"
                   />
                   <button
@@ -361,7 +370,7 @@ export const Auth = () => {
                       setSuccess('');
                       setView('forgot-request');
                     }}
-                    className="text-xs text-slate-500 hover:text-slate-900 underline"
+                    className="text-xs text-slate-500 hover:text-[#0E2A20] underline"
                   >
                     Forgot password?
                   </button>
@@ -371,7 +380,7 @@ export const Auth = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-md bg-[#1F2937] py-2.5 text-xs font-medium text-white hover:bg-slate-900 disabled:opacity-50 mt-2"
+                className="w-full rounded-md bg-[#0E2A20] py-2.5 text-xs font-medium text-white hover:bg-[#143B2D] transition-colors disabled:opacity-50 mt-2 shadow-xs"
               >
                 {loading ? 'Please wait...' : view === 'login' ? 'Sign in' : 'Create Account'}
               </button>
@@ -383,7 +392,7 @@ export const Auth = () => {
 
               <button
                 type="button"
-                className="w-full flex items-center justify-center gap-2 rounded-md border border-slate-200 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                className="w-full flex items-center justify-center gap-2 rounded-md border border-slate-200 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -405,7 +414,7 @@ export const Auth = () => {
                         setSuccess('');
                         setView('register');
                       }}
-                      className="font-medium text-slate-900 underline hover:text-black"
+                      className="font-medium text-[#0E2A20] underline hover:text-[#184535]"
                     >
                       Create an Account
                     </button>
@@ -420,7 +429,7 @@ export const Auth = () => {
                         setSuccess('');
                         setView('login');
                       }}
-                      className="font-medium text-slate-900 underline hover:text-black"
+                      className="font-medium text-[#0E2A20] underline hover:text-[#184535]"
                     >
                       Sign In
                     </button>
@@ -434,7 +443,7 @@ export const Auth = () => {
           {view === 'forgot-request' && (
             <form onSubmit={handleRequestOtp} className="space-y-4">
               <div>
-                <h3 className="text-base font-semibold text-slate-800">Reset Password</h3>
+                <h3 className="text-base font-semibold text-[#0E2A20]">Reset Password</h3>
                 <p className="text-xs text-slate-500 mt-1">
                   Enter your registered email address to receive a 6-digit verification code.
                 </p>
@@ -447,7 +456,7 @@ export const Auth = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-slate-800 focus:outline-none"
+                  className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-[#C5A880] focus:ring-2 focus:ring-[#C5A880]/15 focus:outline-none"
                   placeholder="username@gmail.com"
                 />
               </div>
@@ -455,7 +464,7 @@ export const Auth = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-md bg-[#1F2937] py-2.5 text-xs font-medium text-white hover:bg-slate-900 disabled:opacity-50"
+                className="w-full rounded-md bg-[#0E2A20] py-2.5 text-xs font-medium text-white hover:bg-[#143B2D] transition-colors disabled:opacity-50"
               >
                 {loading ? 'Sending Code...' : 'Send Verification Code'}
               </button>
@@ -468,7 +477,7 @@ export const Auth = () => {
                     setSuccess('');
                     setView('login');
                   }}
-                  className="text-xs text-slate-500 hover:text-slate-800 underline"
+                  className="text-xs text-slate-500 hover:text-[#0E2A20] underline"
                 >
                   Back to Sign In
                 </button>
@@ -480,7 +489,7 @@ export const Auth = () => {
           {view === 'forgot-verify-otp' && (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div>
-                <h3 className="text-base font-semibold text-slate-800">Verify Code</h3>
+                <h3 className="text-base font-semibold text-[#0E2A20]">Verify Code</h3>
                 <p className="text-xs text-slate-500 mt-1">
                   Enter the 6-digit code sent for <strong className="text-slate-700">{email}</strong>.
                 </p>
@@ -494,7 +503,7 @@ export const Auth = () => {
                   required
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.trim())}
-                  className="w-full tracking-widest text-center font-mono rounded-md border border-slate-200 px-3 py-2 text-base text-slate-800 focus:border-slate-800 focus:outline-none"
+                  className="w-full tracking-widest text-center font-mono rounded-md border border-slate-200 px-3 py-2 text-base text-slate-800 focus:border-[#C5A880] focus:ring-2 focus:ring-[#C5A880]/15 focus:outline-none"
                   placeholder="123456"
                 />
               </div>
@@ -502,7 +511,7 @@ export const Auth = () => {
               <button
                 type="submit"
                 disabled={loading || otp.length !== 6}
-                className="w-full rounded-md bg-[#1F2937] py-2.5 text-xs font-medium text-white hover:bg-slate-900 disabled:opacity-50"
+                className="w-full rounded-md bg-[#0E2A20] py-2.5 text-xs font-medium text-white hover:bg-[#143B2D] transition-colors disabled:opacity-50"
               >
                 {loading ? 'Checking Code...' : 'Verify OTP'}
               </button>
@@ -511,7 +520,7 @@ export const Auth = () => {
                 <button
                   type="button"
                   onClick={() => setView('forgot-request')}
-                  className="text-slate-500 hover:text-slate-800 underline"
+                  className="text-slate-500 hover:text-[#0E2A20] underline"
                 >
                   Change Email
                 </button>
@@ -522,7 +531,7 @@ export const Auth = () => {
                     setSuccess('');
                     setView('login');
                   }}
-                  className="text-slate-500 hover:text-slate-800 underline"
+                  className="text-slate-500 hover:text-[#0E2A20] underline"
                 >
                   Cancel
                 </button>
@@ -534,7 +543,7 @@ export const Auth = () => {
           {view === 'forgot-new-password' && (
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div>
-                <h3 className="text-base font-semibold text-slate-800">Set New Password</h3>
+                <h3 className="text-base font-semibold text-[#0E2A20]">Set New Password</h3>
                 <p className="text-xs text-slate-500 mt-1">
                   Choose a secure password for your account.
                 </p>
@@ -548,7 +557,7 @@ export const Auth = () => {
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full rounded-md border border-slate-200 px-3 py-2 pr-10 text-sm text-slate-800 focus:border-slate-800 focus:outline-none"
+                    className="w-full rounded-md border border-slate-200 px-3 py-2 pr-10 text-sm text-slate-800 focus:border-[#C5A880] focus:ring-2 focus:ring-[#C5A880]/15 focus:outline-none"
                     placeholder="New password"
                   />
                   <button
@@ -570,7 +579,7 @@ export const Auth = () => {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full rounded-md border border-slate-200 px-3 py-2 pr-10 text-sm text-slate-800 focus:border-slate-800 focus:outline-none"
+                    className="w-full rounded-md border border-slate-200 px-3 py-2 pr-10 text-sm text-slate-800 focus:border-[#C5A880] focus:ring-2 focus:ring-[#C5A880]/15 focus:outline-none"
                     placeholder="Re-enter password"
                   />
                   <button
@@ -586,20 +595,20 @@ export const Auth = () => {
 
               {/* Password Requirements Checklist */}
               <div className="rounded-md bg-slate-50 p-3 border border-slate-100 text-[11px] space-y-1">
-                <p className="font-semibold text-slate-600 mb-1.5">Password Requirements:</p>
-                <div className={`flex items-center gap-1.5 ${hasMinLen ? 'text-emerald-600' : 'text-slate-400'}`}>
+                <p className="font-semibold text-[#0E2A20] mb-1.5">Password Requirements:</p>
+                <div className={`flex items-center gap-1.5 ${hasMinLen ? 'text-emerald-700' : 'text-slate-400'}`}>
                   <span>{hasMinLen ? '✓' : '•'}</span> At least 8 characters
                 </div>
-                <div className={`flex items-center gap-1.5 ${hasUpper ? 'text-emerald-600' : 'text-slate-400'}`}>
+                <div className={`flex items-center gap-1.5 ${hasUpper ? 'text-emerald-700' : 'text-slate-400'}`}>
                   <span>{hasUpper ? '✓' : '•'}</span> At least one uppercase letter (A-Z)
                 </div>
-                <div className={`flex items-center gap-1.5 ${hasLower ? 'text-emerald-600' : 'text-slate-400'}`}>
+                <div className={`flex items-center gap-1.5 ${hasLower ? 'text-emerald-700' : 'text-slate-400'}`}>
                   <span>{hasLower ? '✓' : '•'}</span> At least one lowercase letter (a-z)
                 </div>
-                <div className={`flex items-center gap-1.5 ${hasNum ? 'text-emerald-600' : 'text-slate-400'}`}>
+                <div className={`flex items-center gap-1.5 ${hasNum ? 'text-emerald-700' : 'text-slate-400'}`}>
                   <span>{hasNum ? '✓' : '•'}</span> At least one number (0-9)
                 </div>
-                <div className={`flex items-center gap-1.5 ${passwordsMatch ? 'text-emerald-600' : 'text-slate-400'}`}>
+                <div className={`flex items-center gap-1.5 ${passwordsMatch ? 'text-emerald-700' : 'text-slate-400'}`}>
                   <span>{passwordsMatch ? '✓' : '•'}</span> Passwords match
                 </div>
               </div>
@@ -607,7 +616,7 @@ export const Auth = () => {
               <button
                 type="submit"
                 disabled={loading || !isPasswordValid}
-                className="w-full rounded-md bg-[#1F2937] py-2.5 text-xs font-medium text-white hover:bg-slate-900 disabled:opacity-50"
+                className="w-full rounded-md bg-[#0E2A20] py-2.5 text-xs font-medium text-white hover:bg-[#143B2D] transition-colors disabled:opacity-50"
               >
                 {loading ? 'Updating Password...' : 'Set New Password'}
               </button>
@@ -620,7 +629,7 @@ export const Auth = () => {
                     setSuccess('');
                     setView('login');
                   }}
-                  className="text-xs text-slate-500 hover:text-slate-800 underline"
+                  className="text-xs text-slate-500 hover:text-[#0E2A20] underline"
                 >
                   Cancel and Sign In
                 </button>
